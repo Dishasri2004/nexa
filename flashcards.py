@@ -4,8 +4,9 @@ from pymongo import MongoClient
 from bson import ObjectId
 
 def get_db():
-    client = MongoClient('mongodb://localhost:27017/')
-    return client['nexa_db']
+    client = MongoClient(os.getenv('MONGODB_URI', 'mongodb://localhost:27017/'))
+    db_name = os.getenv('MONGODB_DB_NAME', 'nexa_db')
+    return client[db_name]
 
 def get_transcript_text(transcript_id):
     """Fetch transcript text from MongoDB."""
