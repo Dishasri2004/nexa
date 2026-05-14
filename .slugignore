@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+uploads/
+faiss_index_*/
+faiss_indexes/
+runtime_data/
+*.log

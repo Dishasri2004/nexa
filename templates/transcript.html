@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexa - Transcript</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        .sidebar {
+            transition: transform 0.3s ease;
+        }
+        .sidebar.collapsed {
+            transform: translateX(100%);
+        }
+        .feature-panel {
+            transition: height 0.3s ease;
+        }
+        /* Flashcard styles */
+        .flashcard {
+            perspective: 1000px;
+            width: 100%;
+        }
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            text-align: center;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+        .flashcard:hover .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            box-sizing: border-box;
+            border-radius: 0.5rem;
+        }
+        .flashcard-front {
+            background: linear-gradient(145deg, #1e2d3b, #2a3f54);
+        }
+        .flashcard-back {
+            background: linear-gradient(145deg, #2a3e50, #1a2c3c);
+            transform: rotateY(180deg);
+        }
+        /* Card animation */
+        @keyframes cardSlideIn {
+            from { 
+                opacity: 0;
+                transform: translateX(30px); 
+            }
+            to { 
+                opacity: 1;
+                transform: translateX(0); 
+            }
+        }
+        .card-animate-in {
+            animation: cardSlideIn 0.3s forwards;
+        }
+        
+        /* Quiz styles */
+        .quiz-question {
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .quiz-question.hidden {
+            display: none;
+        }
+        .quiz-question label:has(input[type="radio"]:checked) {
+            border-left: 4px solid #3182ce;
+            background-color: rgba(49, 130, 206, 0.2);
+        }
+        .quiz-question label:has(input[type="radio"]:disabled) {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .quiz-question input[type="text"]:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        @keyframes questionSlideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(10px); 
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0); 
+            }
+        }
+        .quiz-question:not(.hidden) {
+            animation: questionSlideIn 0.3s forwards;
+        }
+        
+        /* Chatbot styles */
+        .user-message {
+            align-self: flex-end;
+        }
+        
+        .bot-message {
+            align-self: flex-start;
+        }
+        
+        .typing-indicator {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .feature-tab {
+            border: 1px solid #4b5563;
+            background-color: #374151;
+            color: #d1d5db;
+            transition: all 0.2s ease;
+        }
+
+        .feature-tab.active {
+            border-color: #2563eb;
+            background-color: rgba(37, 99, 235, 0.25);
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <nav class="bg-gray-800 p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Nexa</h1>
+            <div>
+                <a href="/dashboard" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors duration-200 mr-2">
+                    Dashboard
+                </a>
+                <a href="/logout" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition-colors duration-200">
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 flex">
+        <!-- Left Side - Transcript -->
+        <div class="w-2/3 pr-4">
+            {% if transcript.type == 'youtube' %}
+            <div class="mb-4 rounded-lg overflow-hidden">
+                <iframe 
+                    width="100%" 
+                    height="400" 
+                    src="https://www.youtube.com/embed/{{ transcript.video_id }}" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+            {% elif transcript.type == 'video' %}
+            <div class="mb-4 rounded-lg overflow-hidden">
+                <video 
+                    id="videoPlayer"
+                    width="100%" 
+                    height="400" 
+                    controls
+                    class="rounded-lg">
+                    <source src="{{ url_for('serve_file', transcript_id=transcript._id) }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            {% elif transcript.type == 'audio' %}
+            <div class="mb-4 rounded-lg overflow-hidden bg-gray-800 p-6">
+                <div class="flex items-center justify-center mb-4">
+                    <svg class="w-16 h-16 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                    </svg>
+                </div>
+                <audio 
+                    id="audioPlayer"
+                    controls
+                    class="w-full">
+                    <source src="{{ url_for('serve_file', transcript_id=transcript._id) }}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+            {% endif %}
+
+            <div class="bg-gray-800 rounded-lg p-6 h-[calc(100vh-200px)] overflow-y-auto">
+                <h2 class="text-2xl font-bold mb-4">Transcript</h2>
+                <div class="text-gray-300 space-y-4">
+                    {{ transcript.content|safe }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side - Features Sidebar -->
+        <div class="w-1/3 bg-gray-800 rounded-lg p-4" id="sidebar">
+            <div class="mb-3 flex items-center justify-between">
+                <h2 class="text-xl font-semibold">AI Assistant</h2>
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </div>
+
+            <div class="flex gap-2 mb-4 overflow-x-auto pb-1">
+                <button class="feature-tab active px-3 py-1.5 rounded-lg text-sm whitespace-nowrap" data-panel="chatbot" onclick="togglePanel('chatbot')">Chatbot</button>
+                <button class="feature-tab px-3 py-1.5 rounded-lg text-sm whitespace-nowrap" data-panel="flashcards" onclick="togglePanel('flashcards')">Flashcards</button>
+                <button class="feature-tab px-3 py-1.5 rounded-lg text-sm whitespace-nowrap" data-panel="quiz" onclick="togglePanel('quiz')">Quiz Generator</button>
+                <button class="feature-tab px-3 py-1.5 rounded-lg text-sm whitespace-nowrap" data-panel="diagram" onclick="togglePanel('diagram')">Diagram Generator</button>
+                <button class="feature-tab px-3 py-1.5 rounded-lg text-sm whitespace-nowrap" data-panel="snapshot" onclick="togglePanel('snapshot')">Snapshot Extractor</button>
+            </div>
+
+            <div id="chatbot-panel" class="p-4 bg-gray-700 rounded-lg">
+                <div id="chatbox-container" class="bg-gray-800 rounded-lg overflow-hidden flex flex-col h-96">
+                    <div id="transcript-chatbox" class="flex-1 p-4 overflow-y-auto flex flex-col gap-3">
+                        <div class="message bot-message bg-gray-700 text-white p-3 rounded-lg self-start max-w-3/4">
+                            Hi! I can answer questions about this transcript. What would you like to know?
+                        </div>
+                    </div>
+                    <div class="p-3 border-t border-gray-700">
+                        <form id="transcript-chat-form" class="flex gap-2">
+                            <input type="text" id="transcript-chat-input" placeholder="Ask about this transcript..." 
+                                    class="flex-1 bg-gray-700 text-white p-2 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-500">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                                Send
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div id="flashcards-panel" class="hidden mt-2 p-4 bg-gray-700 rounded-lg">
+                        <div class="flex items-center space-x-2 mb-4">
+                            <input type="number" id="num-flashcards" min="1" max="20" value="5" 
+                                  class="bg-gray-800 text-white p-2 rounded-lg w-16">
+                            <button id="generate-flashcards" data-id="{{ transcript._id }}" 
+                                   class="px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700">
+                                Generate Flashcards
+                            </button>
+                        </div>
+                        
+                        <div id="flashcards-container" class="mt-4">
+                            {% if flashcards %}
+                                <div class="flashcard-controls flex justify-between items-center mb-3">
+                                    <button id="prev-card" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <span id="card-counter" class="text-white">Card 1 of {{ flashcards|length }}</span>
+                                    <button id="next-card" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <div class="flashcard-actions flex justify-center mb-3 space-x-2">
+                                    <button id="shuffle-cards" class="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        Shuffle
+                                    </button>
+                                    <button id="reset-cards" class="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-700 rounded-lg">
+                                        Reset
+                                    </button>
+                                </div>
+                                
+                                <div id="flashcards-deck" class="relative h-[200px] w-full">
+                                    {% for card in flashcards %}
+                                    <div class="flashcard absolute inset-0 transition-opacity duration-300 {% if loop.index0 != 0 %}hidden opacity-0{% endif %}" data-index="{{ loop.index0 }}">
+                                        <div class="flashcard-inner">
+                                            <div class="flashcard-front bg-gray-800 p-4 rounded-lg shadow-md">
+                                                <p class="text-white text-center">{{ card.question }}</p>
+                                            </div>
+                                            <div class="flashcard-back bg-gray-700 p-4 rounded-lg shadow-md">
+                                                <p class="text-white text-center">{{ card.answer }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-gray-400">No flashcards yet. Generate some!</p>
+                            {% endif %}
+                        </div>
+            </div>
+
+            <div id="quiz-panel" class="hidden mt-2 p-4 bg-gray-700 rounded-lg">
+                        <!-- Quiz Configuration -->
+                        <div class="quiz-config mb-4">
+                            <div class="mb-4">
+                                <label for="num-questions" class="block text-sm font-medium text-gray-300 mb-1">Number of Questions</label>
+                                <input type="number" id="num-questions" min="1" max="20" value="5" 
+                                      class="bg-gray-800 text-white p-2 rounded-lg w-full">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <p class="text-sm font-medium text-gray-300 mb-1">Question Types</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="include-mcq" class="mr-2" checked>
+                                        <span class="text-sm">MCQ</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="include-tf" class="mr-2" checked>
+                                        <span class="text-sm">True/False</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="include-fb" class="mr-2" checked>
+                                        <span class="text-sm">Fill-in-the-Blank</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="show-all-questions" class="mr-2">
+                                    <span class="text-sm">Show all questions at once</span>
+                                </label>
+                            </div>
+                            
+                            <button id="generate-quiz" data-id="{{ transcript._id }}" 
+                                   class="w-full px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-700">
+                                Generate Quiz
+                            </button>
+                        </div>
+                        
+                        <!-- Quiz container -->
+                        <div id="quiz-container" class="mt-4">
+                            <!-- Quiz will be displayed here -->
+                        </div>
+                        
+                        <!-- Quiz navigation for single-question mode -->
+                        <div id="quiz-navigation" class="hidden mt-4 flex justify-between items-center">
+                            <button id="prev-question" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <span id="question-counter" class="text-white">Question 1 of 5</span>
+                            <button id="next-question" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Quiz results summary -->
+                        <div id="quiz-summary" class="hidden mt-4 p-3 bg-gray-800 rounded-lg">
+                            <div class="flex justify-between items-center">
+                                <span>Progress:</span>
+                                <span id="quiz-progress">0/0 questions answered</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2">
+                                <span>Score:</span>
+                                <span id="quiz-score">0/0 correct (0%)</span>
+                            </div>
+                        </div>
+            </div>
+
+            <div id="diagram-panel" class="hidden mt-2 p-4 bg-gray-700 rounded-lg">
+                <div class="mb-3">
+                    <label for="diagram-type" class="block text-xs text-gray-300 mb-1">Diagram Type</label>
+                    <select id="diagram-type" class="w-full bg-gray-800 text-white p-2 rounded-lg border border-gray-600 focus:outline-none focus:border-yellow-500">
+                        <option value="flowchart">Flowchart</option>
+                        <option value="mindmap">Mindmap</option>
+                        <option value="concept-map">Concept Map</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="diagram-topic" class="block text-xs text-gray-300 mb-1">Topic / Context Prompt (required)</label>
+                    <textarea id="diagram-topic" rows="3" placeholder="Paste topic/context, e.g. Reinforcement learning workflow for robot navigation" class="w-full bg-gray-800 text-white p-2 rounded-lg border border-gray-600 focus:outline-none focus:border-yellow-500 resize-y"></textarea>
+                </div>
+                <button id="generate-diagram" data-id="{{ transcript._id }}" class="w-full px-4 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700 mb-4">
+                    Generate Diagram
+                </button>
+                <div id="diagram-status" class="text-sm text-gray-300 mb-2 hidden"></div>
+                <div id="diagram-container" class="diagram-container h-72 bg-gray-600 rounded-lg p-2 overflow-auto">
+                    <div class="text-gray-300 text-sm h-full flex items-center justify-center">Generate a diagram from this transcript.</div>
+                </div>
+            </div>
+
+            <div id="snapshot-panel" class="hidden mt-2 p-4 bg-gray-700 rounded-lg">
+                <div class="mb-2 flex items-center justify-between">
+                    <button id="extract-full-snapshots" class="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 rounded-lg">Extract Full Video Snapshots</button>
+                    <span id="snapshot-extract-status" class="text-xs text-gray-300"></span>
+                </div>
+                <div id="snapshot-gallery" class="h-[420px] overflow-y-auto grid grid-cols-2 gap-3 bg-gray-800 rounded-lg p-2">
+                    <div class="text-gray-400 text-sm text-center py-8 col-span-2">No snapshots available.</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function togglePanel(panelName) {
+            const panel = document.getElementById(`${panelName}-panel`);
+            const allPanels = [
+                document.getElementById('chatbot-panel'),
+                document.getElementById('flashcards-panel'),
+                document.getElementById('quiz-panel'),
+                document.getElementById('diagram-panel'),
+                document.getElementById('snapshot-panel')
+            ];
+            
+            allPanels.forEach(p => {
+                if (p && p.id !== `${panelName}-panel`) {
+                    p.classList.add('hidden');
+                }
+            });
+            
+            panel.classList.remove('hidden');
+
+            document.querySelectorAll('.feature-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.getAttribute('data-panel') === panelName) {
+                    tab.classList.add('active');
+                }
+            });
+        }
+
+        // Flashcards functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+            togglePanel('chatbot');
+
+            // Chatbot functionality
+            const transcriptId = '{{ transcript._id }}';
+            const chatForm = document.getElementById('transcript-chat-form');
+            const chatInput = document.getElementById('transcript-chat-input');
+            const chatbox = document.getElementById('transcript-chatbox');
+            
+            if (chatForm) {
+                chatForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const message = chatInput.value.trim();
+                    if (!message) return;
+                    
+                    // Add user message to chat
+                    addChatMessage('user', message);
+                    chatInput.value = '';
+                    
+                    // Show typing indicator
+                    const typingIndicator = document.createElement('div');
+                    typingIndicator.className = 'message bot-message bg-gray-700 text-white p-3 rounded-lg self-start max-w-3/4 typing-indicator';
+                    typingIndicator.textContent = 'Thinking...';
+                    chatbox.appendChild(typingIndicator);
+                    scrollToBottom(chatbox);
+                    
+                    // Disable input while processing
+                    chatInput.disabled = true;
+                    const sendButton = chatForm.querySelector('button');
+                    sendButton.disabled = true;
+                    
+                    try {
+                        // Use the transcript-specific chat endpoint
+                        const response = await fetch(`/chat/${transcriptId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ question: message })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        // Remove typing indicator
+                        chatbox.removeChild(typingIndicator);
+                        
+                        if (result.answer) {
+                            addChatMessage('bot', result.answer);
+                        } else {
+                            addChatMessage('bot', result.error || 'Sorry, I encountered an error. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Chat error:', error);
+                        chatbox.removeChild(typingIndicator);
+                        addChatMessage('bot', 'Sorry, I encountered a connection error. Please try again.');
+                    } finally {
+                        // Re-enable input
+                        chatInput.disabled = false;
+                        sendButton.disabled = false;
+                        chatInput.focus();
+                    }
+                });
+            }
+            
+            function addChatMessage(sender, text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = sender === 'user' 
+                    ? 'message user-message bg-blue-600 text-white p-3 rounded-lg self-end max-w-3/4' 
+                    : 'message bot-message bg-gray-700 text-white p-3 rounded-lg self-start max-w-3/4';
+                messageDiv.textContent = text;
+                
+                // Add the message to the chatbox
+                chatbox.appendChild(messageDiv);
+                scrollToBottom(chatbox);
+            }
+            
+            function scrollToBottom(element) {
+                element.scrollTop = element.scrollHeight;
+            }
+            
+            // Quiz functionality
+            const generateQuizButton = document.getElementById('generate-quiz');
+            if (generateQuizButton) {
+                generateQuizButton.addEventListener('click', async function() {
+                    const transcriptId = this.getAttribute('data-id');
+                    const numQuestions = document.getElementById('num-questions').value;
+                    const includeMcq = document.getElementById('include-mcq').checked;
+                    const includeTf = document.getElementById('include-tf').checked;
+                    const includeFb = document.getElementById('include-fb').checked;
+                    const showAllQuestions = document.getElementById('show-all-questions').checked;
+                    
+                    const quizContainer = document.getElementById('quiz-container');
+                    
+                    // Validation - at least one type must be selected
+                    if (!includeMcq && !includeTf && !includeFb) {
+                        quizContainer.innerHTML = '<p class="text-red-500">Please select at least one question type.</p>';
+                        return;
+                    }
+                    
+                    // Show loading state
+                    quizContainer.innerHTML = '<p class="text-gray-400">Generating quiz... This may take a moment.</p>';
+                    generateQuizButton.disabled = true;
+                    generateQuizButton.classList.add('opacity-50');
+                    
+                    try {
+                        const response = await fetch('/generate_quiz', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `transcript_id=${transcriptId}&num_questions=${numQuestions}&include_mcq=${includeMcq}&include_tf=${includeTf}&include_fb=${includeFb}`
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // Set up quiz UI
+                            renderQuiz(data.quiz, showAllQuestions, transcriptId);
+                        } else {
+                            quizContainer.innerHTML = `<p class="text-red-500">Error: ${data.message}</p>`;
+                        }
+                    } catch (error) {
+                        quizContainer.innerHTML = '<p class="text-red-500">Failed to generate quiz. Please try again.</p>';
+                        console.error('Error:', error);
+                    } finally {
+                        generateQuizButton.disabled = false;
+                        generateQuizButton.classList.remove('opacity-50');
+                    }
+                });
+            }
+
+            // Function to render the quiz
+            function renderQuiz(quizData, showAllQuestions, transcriptId) {
+                const quizContainer = document.getElementById('quiz-container');
+                const quizNavigation = document.getElementById('quiz-navigation');
+                const quizSummary = document.getElementById('quiz-summary');
+                const questionCounter = document.getElementById('question-counter');
+                const prevButton = document.getElementById('prev-question');
+                const nextButton = document.getElementById('next-question');
+                
+                // Clear container
+                quizContainer.innerHTML = '';
+                
+                // Get quiz questions
+                const questions = quizData.quiz || [];
+                
+                if (questions.length === 0) {
+                    quizContainer.innerHTML = '<p class="text-yellow-500">No questions were generated. Please try again.</p>';
+                    return;
+                }
+
+                // Create HTML for each question
+                let currentQuestionIndex = 0;
+                const questionElements = [];
+
+                questions.forEach((question, index) => {
+                    const questionEl = document.createElement('div');
+                    questionEl.className = `quiz-question mb-6 p-4 bg-gray-800 rounded-lg ${showAllQuestions ? '' : 'hidden'}`;
+                    questionEl.dataset.index = index;
+                    questionEl.dataset.id = question.id;
+                    questionEl.dataset.type = question.type;
+
+                    // Question header
+                    const header = document.createElement('div');
+                    header.className = 'mb-3';
+                    
+                    const questionNumber = document.createElement('span');
+                    questionNumber.className = 'text-sm text-gray-400 block mb-1';
+                    questionNumber.textContent = `Question ${index + 1}`;
+                    
+                    const questionText = document.createElement('h3');
+                    questionText.className = 'text-lg font-medium';
+                    questionText.textContent = question.question;
+                    
+                    header.appendChild(questionNumber);
+                    header.appendChild(questionText);
+                    questionEl.appendChild(header);
+
+                    // Question content based on type
+                    const content = document.createElement('div');
+                    content.className = 'mb-4';
+
+                    if (question.type === 'mcq') {
+                        // Multiple choice
+                        question.options.forEach((option, optIndex) => {
+                            const label = document.createElement('label');
+                            label.className = 'block mb-2 p-3 bg-gray-700 rounded-lg hover:bg-gray-600 cursor-pointer';
+                            
+                            const radio = document.createElement('input');
+                            radio.type = 'radio';
+                            radio.name = `question-${question.id}`;
+                            radio.value = option;
+                            radio.className = 'mr-3';
+                            
+                            label.appendChild(radio);
+                            label.appendChild(document.createTextNode(option));
+                            content.appendChild(label);
+                            
+                            // Add event listener to radio button
+                            radio.addEventListener('change', function() {
+                                if (this.checked) {
+                                    submitAnswer(transcriptId, question.id, option, questionEl);
+                                }
+                            });
+                        });
+                    } else if (question.type === 'true_false') {
+                        // True/False
+                        ['True', 'False'].forEach(option => {
+                            const label = document.createElement('label');
+                            label.className = 'block mb-2 p-3 bg-gray-700 rounded-lg hover:bg-gray-600 cursor-pointer';
+                            
+                            const radio = document.createElement('input');
+                            radio.type = 'radio';
+                            radio.name = `question-${question.id}`;
+                            radio.value = option;
+                            radio.className = 'mr-3';
+                            
+                            label.appendChild(radio);
+                            label.appendChild(document.createTextNode(option));
+                            content.appendChild(label);
+                            
+                            // Add event listener to radio button
+                            radio.addEventListener('change', function() {
+                                if (this.checked) {
+                                    submitAnswer(transcriptId, question.id, option, questionEl);
+                                }
+                            });
+                        });
+                    } else if (question.type === 'fill_blank') {
+                        // Fill in the blank
+                        const inputGroup = document.createElement('div');
+                        inputGroup.className = 'flex items-center';
+                        
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.placeholder = 'Type your answer here';
+                        input.className = 'flex-1 bg-gray-700 text-white p-3 rounded-l-lg';
+                        
+                        const submitBtn = document.createElement('button');
+                        submitBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-r-lg';
+                        submitBtn.textContent = 'Submit';
+                        
+                        inputGroup.appendChild(input);
+                        inputGroup.appendChild(submitBtn);
+                        content.appendChild(inputGroup);
+                        
+                        // Add event listener to submit button
+                        submitBtn.addEventListener('click', function() {
+                            if (input.value.trim()) {
+                                submitAnswer(transcriptId, question.id, input.value, questionEl);
+                                input.disabled = true;
+                                submitBtn.disabled = true;
+                                submitBtn.classList.add('opacity-50');
+                            }
+                        });
+                        
+                        // Add event listener to input for Enter key
+                        input.addEventListener('keypress', function(e) {
+                            if (e.key === 'Enter' && input.value.trim()) {
+                                submitAnswer(transcriptId, question.id, input.value, questionEl);
+                                input.disabled = true;
+                                submitBtn.disabled = true;
+                                submitBtn.classList.add('opacity-50');
+                            }
+                        });
+                    }
+
+                    questionEl.appendChild(content);
+
+                    // Result area (initially hidden)
+                    const resultArea = document.createElement('div');
+                    resultArea.className = 'result-area hidden mt-4 p-3 rounded-lg';
+                    questionEl.appendChild(resultArea);
+
+                    // Add to container
+                    quizContainer.appendChild(questionEl);
+                    questionElements.push(questionEl);
+                });
+
+                // Show first question if not showing all
+                if (!showAllQuestions && questionElements.length > 0) {
+                    questionElements[0].classList.remove('hidden');
+                    quizNavigation.classList.remove('hidden');
+                    updateQuestionCounter(1, questions.length);
+                    
+                    // Set up navigation buttons
+                    updateNavigationButtons(0, questionElements.length - 1);
+                    
+                    prevButton.addEventListener('click', function() {
+                        if (currentQuestionIndex > 0) {
+                            questionElements[currentQuestionIndex].classList.add('hidden');
+                            currentQuestionIndex--;
+                            questionElements[currentQuestionIndex].classList.remove('hidden');
+                            updateQuestionCounter(currentQuestionIndex + 1, questions.length);
+                            updateNavigationButtons(currentQuestionIndex, questionElements.length - 1);
+                        }
+                    });
+                    
+                    nextButton.addEventListener('click', function() {
+                        if (currentQuestionIndex < questionElements.length - 1) {
+                            questionElements[currentQuestionIndex].classList.add('hidden');
+                            currentQuestionIndex++;
+                            questionElements[currentQuestionIndex].classList.remove('hidden');
+                            updateQuestionCounter(currentQuestionIndex + 1, questions.length);
+                            updateNavigationButtons(currentQuestionIndex, questionElements.length - 1);
+                        }
+                    });
+                } else {
+                    quizNavigation.classList.add('hidden');
+                }
+
+                // Show quiz summary
+                quizSummary.classList.remove('hidden');
+                updateQuizSummary(0, 0, questions.length);
+            }
+            
+            // Function to submit an answer
+            async function submitAnswer(transcriptId, questionId, userAnswer, questionEl) {
+                try {
+                    const response = await fetch('/quiz/answer', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            transcript_id: transcriptId,
+                            question_id: questionId,
+                            user_answer: userAnswer
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Display result
+                        const resultArea = questionEl.querySelector('.result-area');
+                        resultArea.classList.remove('hidden');
+                        
+                        if (data.result.correct) {
+                            resultArea.classList.add('bg-green-800');
+                            resultArea.innerHTML = `
+                                <div class="flex items-start">
+                                    <svg class="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    <div>
+                                        <p class="font-medium text-green-400">Correct!</p>
+                                        <p class="text-sm mt-1">${data.result.explanation}</p>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            resultArea.classList.add('bg-red-800');
+                            resultArea.innerHTML = `
+                                <div class="flex items-start">
+                                    <svg class="w-5 h-5 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                    <div>
+                                        <p class="font-medium text-red-400">Incorrect</p>
+                                        <p class="text-sm mt-1">Correct answer: ${data.result.correctAnswer}</p>
+                                        <p class="text-sm mt-1">${data.result.explanation}</p>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        // Disable all inputs for this question
+                        const inputs = questionEl.querySelectorAll('input');
+                        inputs.forEach(input => {
+                            input.disabled = true;
+                        });
+                        
+                        // Update quiz summary
+                        updateQuizSummary(
+                            data.score.correct,
+                            data.score.answered,
+                            data.score.total
+                        );
+                    } else {
+                        console.error('Error submitting answer:', data.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+            
+            // Function to update question counter
+            function updateQuestionCounter(current, total) {
+                const counter = document.getElementById('question-counter');
+                counter.textContent = `Question ${current} of ${total}`;
+            }
+            
+            // Function to update navigation buttons
+            function updateNavigationButtons(currentIndex, lastIndex) {
+                const prevButton = document.getElementById('prev-question');
+                const nextButton = document.getElementById('next-question');
+                
+                prevButton.disabled = currentIndex === 0;
+                prevButton.classList.toggle('opacity-50', currentIndex === 0);
+                
+                nextButton.disabled = currentIndex === lastIndex;
+                nextButton.classList.toggle('opacity-50', currentIndex === lastIndex);
+            }
+            
+            // Function to update quiz summary
+            function updateQuizSummary(correct, answered, total) {
+                const progressEl = document.getElementById('quiz-progress');
+                const scoreEl = document.getElementById('quiz-score');
+                
+                progressEl.textContent = `${answered}/${total} questions answered`;
+                
+                const percentage = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+                scoreEl.textContent = `${correct}/${answered} correct (${percentage}%)`;
+            }
+
+            // Generate flashcards
+            const generateButton = document.getElementById('generate-flashcards');
+            if (generateButton) {
+                generateButton.addEventListener('click', async function() {
+                    const transcriptId = this.getAttribute('data-id');
+                    const numFlashcards = document.getElementById('num-flashcards').value;
+                    const container = document.getElementById('flashcards-container');
+                    
+                    // Show loading state
+                    container.innerHTML = '<p class="text-gray-400">Generating flashcards... This may take a moment.</p>';
+                    generateButton.disabled = true;
+                    generateButton.classList.add('opacity-50');
+                    
+                    try {
+                        const response = await fetch('/generate_flashcards', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `transcript_id=${transcriptId}&num_flashcards=${numFlashcards}`
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // Reload the page to display the newly generated flashcards
+                            window.location.reload();
+                        } else {
+                            container.innerHTML = `<p class="text-red-500">Error: ${data.message}</p>`;
+                        }
+                    } catch (error) {
+                        container.innerHTML = '<p class="text-red-500">Failed to generate flashcards. Please try again.</p>';
+                        console.error('Error:', error);
+                    } finally {
+                        generateButton.disabled = false;
+                        generateButton.classList.remove('opacity-50');
+                    }
+                });
+            }
+            
+            // Flashcard navigation
+            const flashcardsContainer = document.getElementById('flashcards-deck');
+            if (flashcardsContainer) {
+                const cards = Array.from(flashcardsContainer.querySelectorAll('.flashcard'));
+                const prevBtn = document.getElementById('prev-card');
+                const nextBtn = document.getElementById('next-card');
+                const shuffleBtn = document.getElementById('shuffle-cards');
+                const resetBtn = document.getElementById('reset-cards');
+                const counter = document.getElementById('card-counter');
+                
+                let currentIndex = 0;
+                let originalOrder = [...cards.map(card => parseInt(card.dataset.index))];
+                
+                // Function to show current card
+                function showCard(index) {
+                    cards.forEach(card => {
+                        card.classList.add('hidden', 'opacity-0');
+                        card.classList.remove('card-animate-in');
+                    });
+                    
+                    cards[index].classList.remove('hidden', 'opacity-0');
+                    cards[index].classList.add('card-animate-in');
+                    currentIndex = index;
+                    
+                    // Update counter
+                    counter.textContent = `Card ${currentIndex + 1} of ${cards.length}`;
+                    
+                    // Update button states
+                    prevBtn.disabled = currentIndex === 0;
+                    prevBtn.classList.toggle('opacity-50', currentIndex === 0);
+                    nextBtn.disabled = currentIndex === cards.length - 1;
+                    nextBtn.classList.toggle('opacity-50', currentIndex === cards.length - 1);
+                }
+                
+                // Next button
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', function() {
+                        if (currentIndex < cards.length - 1) {
+                            showCard(currentIndex + 1);
+                        }
+                    });
+                }
+                
+                // Previous button
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', function() {
+                        if (currentIndex > 0) {
+                            showCard(currentIndex - 1);
+                        }
+                    });
+                }
+                
+                // Shuffle functionality
+                if (shuffleBtn && cards.length > 1) {
+                    shuffleBtn.addEventListener('click', function() {
+                        // Fisher-Yates shuffle algorithm
+                        let indices = [...Array(cards.length).keys()];
+                        for (let i = indices.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [indices[i], indices[j]] = [indices[j], indices[i]];
+                        }
+                        
+                        // Reorder cards
+                        for (let i = 0; i < cards.length; i++) {
+                            cards[i].style.order = indices[i];
+                        }
+                        
+                        showCard(0);
+                    });
+                }
+                
+                // Reset functionality
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', function() {
+                        // Reset to original order
+                        for (let i = 0; i < cards.length; i++) {
+                            cards[i].style.order = originalOrder[i];
+                        }
+                        showCard(0);
+                    });
+                }
+                
+                // Initialize
+                if (cards.length > 0) {
+                    showCard(0);
+                }
+            }
+
+            // Snapshot Extractor (snaps only)
+            const extractFullSnapshotsBtn = document.getElementById('extract-full-snapshots');
+            const snapshotExtractStatus = document.getElementById('snapshot-extract-status');
+            const snapshotGallery = document.getElementById('snapshot-gallery');
+            let snapshotAutoExtractionTried = false;
+            let snapshotUpgradeTried = false;
+
+            function renderSnapshotGallery(items) {
+                if (!snapshotGallery) return;
+                const snapshotItems = items || [];
+
+                if (!snapshotItems.length) {
+                    snapshotGallery.innerHTML = '<div class="text-gray-400 text-sm text-center py-8 col-span-2">No snapshots available.</div>';
+                    return;
+                }
+
+                snapshotGallery.innerHTML = snapshotItems.map((item) => {
+                    return `
+                        <div class="w-full bg-gray-700 rounded-lg p-1 border border-gray-600">
+                            <img src="${item.image_url}" alt="snapshot" class="w-full h-32 object-cover rounded" />
+                            <div class="mt-1 px-1 pb-1">
+                                <a href="${item.download_url || item.image_url}" download class="block text-center text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded">Save Locally</a>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            async function loadSnapshots() {
+                try {
+                    const response = await fetch(`/snapshot/list/${transcriptId}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        const snapshots = data.snapshots || [];
+                        renderSnapshotGallery(snapshots);
+
+                        if (!snapshots.length && !snapshotAutoExtractionTried) {
+                            snapshotAutoExtractionTried = true;
+                            await extractSnapshots(false);
+                        } else if (snapshots.length <= 6 && !snapshotUpgradeTried) {
+                            snapshotUpgradeTried = true;
+                            await extractSnapshots(true, true);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Snapshot list error:', error);
+                }
+            }
+
+            async function extractSnapshots(replaceExisting = false, silent = false) {
+                try {
+                    if (extractFullSnapshotsBtn) extractFullSnapshotsBtn.disabled = true;
+                    if (!silent && snapshotExtractStatus) {
+                        snapshotExtractStatus.textContent = 'Extracting full video snapshots...';
+                    }
+
+                    const formData = new FormData();
+                    formData.append('transcript_id', transcriptId);
+                    formData.append('replace_existing', replaceExisting ? 'true' : 'false');
+                    formData.append('interval_seconds', '1');
+                    formData.append('max_snapshots', '120');
+
+                    const extractResponse = await fetch('/snapshot/extract', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const extractData = await extractResponse.json();
+
+                    if (extractData.success) {
+                        renderSnapshotGallery(extractData.snapshots || []);
+                        if (snapshotExtractStatus) {
+                            const count = Array.isArray(extractData.snapshots) ? extractData.snapshots.length : (extractData.count || 0);
+                            const suffix = extractData.message ? ` (${extractData.message})` : '';
+                            snapshotExtractStatus.textContent = `Loaded ${count} snapshots${suffix}`;
+                        }
+                    } else if (snapshotExtractStatus) {
+                        snapshotExtractStatus.textContent = extractData.message || 'Failed to extract snapshots';
+                    }
+                } catch (error) {
+                    console.error('Snapshot extract error:', error);
+                    if (snapshotExtractStatus) {
+                        snapshotExtractStatus.textContent = 'Failed to extract snapshots';
+                    }
+                } finally {
+                    if (extractFullSnapshotsBtn) extractFullSnapshotsBtn.disabled = false;
+                }
+            }
+
+            if (extractFullSnapshotsBtn) {
+                extractFullSnapshotsBtn.addEventListener('click', function() {
+                    extractSnapshots(true);
+                });
+            }
+
+            loadSnapshots();
+
+            // Diagram Generator
+            const generateDiagramButton = document.getElementById('generate-diagram');
+            const diagramStatus = document.getElementById('diagram-status');
+            const diagramContainer = document.getElementById('diagram-container');
+            const diagramTypeSelect = document.getElementById('diagram-type');
+            const diagramTopicInput = document.getElementById('diagram-topic');
+
+            if (generateDiagramButton && diagramContainer) {
+                generateDiagramButton.addEventListener('click', async function () {
+                    const transcriptId = this.getAttribute('data-id');
+                    const selectedDiagramType = diagramTypeSelect ? diagramTypeSelect.value : 'flowchart';
+                    const diagramTopic = diagramTopicInput ? diagramTopicInput.value.trim() : '';
+                    if (!transcriptId) {
+                        return;
+                    }
+
+                    if (!diagramTopic) {
+                        diagramStatus.classList.remove('hidden');
+                        diagramStatus.textContent = 'Please paste a topic/context prompt first.';
+                        diagramContainer.innerHTML = '<div class="text-yellow-300 text-sm h-full flex items-center justify-center">Topic/context is required.</div>';
+                        return;
+                    }
+
+                    generateDiagramButton.disabled = true;
+                    generateDiagramButton.classList.add('opacity-50');
+                    diagramStatus.classList.remove('hidden');
+                    diagramStatus.textContent = 'Generating diagram...';
+                    diagramContainer.innerHTML = '<div class="text-gray-300 text-sm h-full flex items-center justify-center">Building Mermaid diagram...</div>';
+
+                    try {
+                        const response = await fetch('/generate_diagram', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ transcript_id: transcriptId, diagram_type: selectedDiagramType, topic: diagramTopic })
+                        });
+
+                        const data = await response.json();
+                        if (!data.success || !data.mermaid) {
+                            throw new Error(data.message || 'Failed to generate diagram');
+                        }
+
+                        const graphDefinition = data.mermaid;
+                        const renderId = `mermaid-${Date.now()}`;
+                        try {
+                            const rendered = await mermaid.render(renderId, graphDefinition);
+                            diagramContainer.innerHTML = rendered.svg;
+                            const renderedSvg = diagramContainer.querySelector('svg');
+                            if (renderedSvg) {
+                                renderedSvg.style.width = '100%';
+                                renderedSvg.style.height = 'auto';
+                                renderedSvg.style.minHeight = '100%';
+                            }
+                            diagramStatus.textContent = `${selectedDiagramType} generated successfully.`;
+                        } catch (renderError) {
+                            diagramStatus.textContent = 'Gemini returned invalid Mermaid. Please click Generate Diagram again.';
+                            diagramContainer.innerHTML = '<div class="text-red-300 text-sm h-full flex items-center justify-center">Invalid diagram format from Gemini. Retry generation.</div>';
+                        }
+                    } catch (error) {
+                        diagramStatus.textContent = error.message || 'Failed to generate diagram.';
+                        diagramContainer.innerHTML = '<div class="text-red-300 text-sm h-full flex items-center justify-center">Failed to generate diagram from Gemini. Please retry.</div>';
+                    } finally {
+                        generateDiagramButton.disabled = false;
+                        generateDiagramButton.classList.remove('opacity-50');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

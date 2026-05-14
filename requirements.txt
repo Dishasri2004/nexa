@@ -1,0 +1,28 @@
+youtube-transcript-api
+Flask
+gunicorn
+pymongo
+dnspython
+werkzeug
+python-dotenv>=1.0.0
+
+# Gemini / Google GenAI
+google-genai>=0.1.0
+
+# LangChain stack pinned to versions that support langchain.chains
+langchain==0.2.16
+langchain-community==0.2.16
+langchain-text-splitters==0.2.2
+langchain-google-genai==1.0.4
+
+youtube-transcript-api
+faiss-cpu
+ffmpeg-python
+pypdf
+
+# Snapshot Extractor
+opencv-python-headless
+Pillow
+pytesseract
+pymupdf
+yt-dlp

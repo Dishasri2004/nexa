@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexa - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glass {
+            background: rgba(31, 41, 55, 0.75);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(75, 85, 99, 0.45);
+        }
+        .action-card {
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .action-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 30px -16px rgba(59, 130, 246, 0.55);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(3, 7, 18, 0.82);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 2rem 1rem;
+        }
+        .modal-content {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #111827;
+            border: 1px solid #374151;
+            border-radius: 1rem;
+            padding: 1.5rem;
+        }
+        .xp-glow {
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25), 0 0 24px rgba(59, 130, 246, 0.32);
+        }
+        .pulse-dot {
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white min-h-screen">
+    <nav class="glass sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">Nexa Dashboard</h1>
+                <p class="text-sm text-gray-300">Gamified learning command center</p>
+            </div>
+            <a href="/logout" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition-colors duration-200">
+                Logout
+            </a>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="glass rounded-2xl p-6 lg:col-span-2 xp-glow">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold">Progress Arena</h2>
+                    <span class="text-xs px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">Active Session</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div class="bg-gray-900/70 rounded-xl p-4 border border-gray-700">
+                        <p class="text-xs text-gray-400 uppercase tracking-wide">XP</p>
+                        <p id="statXp" class="text-2xl font-bold text-blue-400">0</p>
+                    </div>
+                    <div class="bg-gray-900/70 rounded-xl p-4 border border-gray-700">
+                        <p class="text-xs text-gray-400 uppercase tracking-wide">Level</p>
+                        <p id="statLevel" class="text-2xl font-bold text-indigo-300">1</p>
+                    </div>
+                    <div class="bg-gray-900/70 rounded-xl p-4 border border-gray-700">
+                        <p class="text-xs text-gray-400 uppercase tracking-wide">Streak</p>
+                        <p id="statStreak" class="text-2xl font-bold text-amber-300">1</p>
+                    </div>
+                    <div class="bg-gray-900/70 rounded-xl p-4 border border-gray-700">
+                        <p class="text-xs text-gray-400 uppercase tracking-wide">Uploads</p>
+                        <p id="statUploads" class="text-2xl font-bold text-cyan-300">0</p>
+                    </div>
+                    <div class="bg-gray-900/70 rounded-xl p-4 border border-gray-700">
+                        <p class="text-xs text-gray-400 uppercase tracking-wide">Links + Audio</p>
+                        <p id="statLinks" class="text-2xl font-bold text-emerald-300">0</p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="text-gray-300">Level progress</span>
+                        <span id="levelProgressLabel" class="text-gray-300">0 / 120 XP</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-3">
+                        <div id="levelProgressBar" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-3 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass rounded-2xl p-6">
+                <h3 class="text-xl font-semibold mb-4">Milestones</h3>
+                <ul class="space-y-3 text-sm">
+                    <li id="milestoneUpload" class="p-3 rounded-lg border border-gray-700 bg-gray-900/70">🎯 First upload mission</li>
+                    <li id="milestoneLink" class="p-3 rounded-lg border border-gray-700 bg-gray-900/70">🔗 First link/text mission</li>
+                    <li id="milestoneRecord" class="p-3 rounded-lg border border-gray-700 bg-gray-900/70">🎙 First audio/record mission</li>
+                    <li id="milestonePower" class="p-3 rounded-lg border border-gray-700 bg-gray-900/70">⚡ 500 XP power learner</li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="text-2xl font-bold mb-4">Choose an Input Mode</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <button class="action-card glass rounded-2xl p-6 text-left" onclick="openModal('uploadModal')">
+                    <svg class="w-14 h-14 mb-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold">Upload Video</h3>
+                    <p class="mt-2 text-gray-300 text-sm">Send a lecture/video file for transcript generation.</p>
+                </button>
+
+                <button class="action-card glass rounded-2xl p-6 text-left" onclick="openModal('linkModal')">
+                    <svg class="w-14 h-14 mb-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold">Paste Link or Text</h3>
+                    <p class="mt-2 text-gray-300 text-sm">Process YouTube links or custom notes instantly.</p>
+                </button>
+
+                <button class="action-card glass rounded-2xl p-6 text-left" onclick="openModal('recordModal')">
+                    <svg class="w-14 h-14 mb-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold">Audio Upload or Record</h3>
+                    <p class="mt-2 text-gray-300 text-sm">Upload audio or capture live voice notes.</p>
+                </button>
+            </div>
+        </section>
+
+        <section class="glass rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-semibold">Activity Feed</h3>
+                <span class="text-xs text-gray-400">Latest 5 actions</span>
+            </div>
+            <ul id="activityFeed" class="space-y-2 text-sm text-gray-200">
+                <li class="p-3 rounded-lg border border-gray-700 bg-gray-900/70">No activity yet. Complete your first mission.</li>
+            </ul>
+        </section>
+
+        <section class="glass rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-semibold">14-Day XP Trend</h3>
+                <span id="trendSummary" class="text-xs text-gray-400">Loading analytics...</span>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-4" id="trendFilters">
+                <button type="button" data-metric="xp" class="trend-filter px-3 py-1.5 rounded-lg text-xs border border-blue-400/40 bg-blue-500/20 text-blue-300">XP</button>
+                <button type="button" data-metric="uploads" class="trend-filter px-3 py-1.5 rounded-lg text-xs border border-gray-600 bg-gray-800 text-gray-200">Uploads</button>
+                <button type="button" data-metric="links" class="trend-filter px-3 py-1.5 rounded-lg text-xs border border-gray-600 bg-gray-800 text-gray-200">Links/Text</button>
+                <button type="button" data-metric="records" class="trend-filter px-3 py-1.5 rounded-lg text-xs border border-gray-600 bg-gray-800 text-gray-200">Audio/Recordings</button>
+            </div>
+            <div id="historyBars" class="h-44 flex items-end gap-2">
+                <div class="w-full h-full rounded-lg border border-gray-700 bg-gray-900/70 flex items-center justify-center text-gray-400 text-sm">
+                    Loading trend data...
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="uploadModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Upload Video</h2>
+            <form id="uploadForm" class="space-y-4">
+                <input type="file" accept=".mp4,.avi,.mkv,.mov,.flv,.webm" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600" required>
+                <div id="uploadProgress" class="hidden">
+                    <div class="w-full bg-gray-700 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p class="text-sm text-gray-400 mt-2">Processing video...</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 flex-1">Upload</button>
+                    <button type="button" onclick="closeModal('uploadModal')" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="linkModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Add Content</h2>
+            <form id="linkForm" class="space-y-6">
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold">YouTube / Website</h3>
+                    <input type="url" name="contentUrl" placeholder="Enter a YouTube URL" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600">
+                </div>
+
+                <div class="text-center text-gray-400">- OR -</div>
+
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold">Paste Text</h3>
+                    <textarea name="contentText" placeholder="Paste your notes/text" class="w-full h-32 p-3 rounded-lg bg-gray-700 border border-gray-600 resize-none"></textarea>
+                </div>
+
+                <div id="linkProgress" class="hidden">
+                    <div class="w-full bg-gray-700 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p class="text-sm text-gray-400 mt-2">Processing content...</p>
+                </div>
+
+                <div class="flex space-x-2">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 flex-1">Add</button>
+                    <button type="button" onclick="closeModal('linkModal')" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="recordModal" class="modal">
+        <div class="modal-content space-y-6">
+            <h2 class="text-2xl font-bold">Record or Upload Audio</h2>
+
+            <div class="p-6 bg-gray-800 rounded-lg border border-gray-700">
+                <h3 class="text-lg font-semibold mb-4">Upload Audio File</h3>
+                <form id="audioUploadForm" class="space-y-4">
+                    <input type="file" accept=".mp3,.wav,.ogg,.m4a,.webm" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600" required>
+                    <div class="text-sm text-gray-400">Supported formats: MP3, WAV, OGG, M4A, WEBM</div>
+                    <button type="submit" class="w-full px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700">Upload Audio</button>
+                </form>
+                <div id="audioUploadProgress" class="hidden mt-4">
+                    <div class="w-full bg-gray-600 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p class="text-sm text-gray-400 mt-2">Processing audio...</p>
+                </div>
+            </div>
+
+            <div class="p-6 bg-gray-800 rounded-lg border border-gray-700">
+                <h3 class="text-lg font-semibold mb-4">Voice Recording</h3>
+                <div class="space-y-4">
+                    <div id="recordingControls" class="flex flex-col sm:flex-row gap-3">
+                        <button id="startRecord" class="flex-1 px-4 py-2 bg-red-600 rounded-lg hover:bg-red-700 flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="6" fill="currentColor"/>
+                            </svg>
+                            Start Recording
+                        </button>
+                        <button id="stopRecord" class="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700 hidden flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <rect x="8" y="8" width="8" height="8" fill="currentColor"/>
+                            </svg>
+                            Stop Recording
+                        </button>
+                        <button id="pauseRecord" class="flex-1 px-4 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700 hidden flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6"/>
+                            </svg>
+                            Pause
+                        </button>
+                    </div>
+
+                    <div id="recordingStatus" class="text-center hidden">
+                        <div class="animate-pulse text-red-500 flex items-center justify-center gap-2">
+                            <span class="w-2.5 h-2.5 bg-red-500 rounded-full pulse-dot"></span>
+                            <span id="recordingStatusText">Recording in progress...</span>
+                        </div>
+                        <div class="mt-2 font-mono" id="recordingTime">00:00</div>
+                    </div>
+
+                    <div id="audioPreview" class="hidden">
+                        <audio id="recordedAudio" controls class="w-full mt-4"></audio>
+                        <div class="flex space-x-2 mt-2">
+                            <button id="saveRecording" class="flex-1 px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700">Save Recording</button>
+                            <button id="discardRecording" class="px-4 py-2 bg-red-600 rounded-lg hover:bg-red-700">Discard</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-right">
+                <button type="button" onclick="closeModal('recordModal')" class="px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-700">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script id="initialAnalytics" type="application/json">{{ analytics | default({}, true) | tojson }}</script>
+    <script>
+        const XP_PER_ACTION = {
+            upload: 140,
+            link: 100,
+            record: 120
+        };
+        const XP_PER_LEVEL = 120;
+        const analyticsState = JSON.parse(document.getElementById('initialAnalytics').textContent || '{}');
+        let currentTrendMetric = 'xp';
+        let currentHistoryData = [];
+
+        function normalizeAnalytics() {
+            analyticsState.uploads = Number(analyticsState.uploads || 0);
+            analyticsState.links = Number(analyticsState.links || 0);
+            analyticsState.records = Number(analyticsState.records || 0);
+            analyticsState.xp = Number(analyticsState.xp || 0);
+            analyticsState.streak = Number(analyticsState.streak || 1);
+            analyticsState.recent_actions = Array.isArray(analyticsState.recent_actions) ? analyticsState.recent_actions : [];
+        }
+
+        function currentLevel() {
+            return Math.floor(analyticsState.xp / XP_PER_LEVEL) + 1;
+        }
+
+        function xpIntoCurrentLevel() {
+            return analyticsState.xp % XP_PER_LEVEL;
+        }
+
+        function milestoneClass(isComplete) {
+            return isComplete
+                ? 'p-3 rounded-lg border border-green-500/40 bg-green-500/10 text-green-300'
+                : 'p-3 rounded-lg border border-gray-700 bg-gray-900/70';
+        }
+
+        function renderMilestones() {
+            document.getElementById('milestoneUpload').className = milestoneClass(analyticsState.uploads > 0);
+            document.getElementById('milestoneLink').className = milestoneClass(analyticsState.links > 0);
+            document.getElementById('milestoneRecord').className = milestoneClass(analyticsState.records > 0);
+            document.getElementById('milestonePower').className = milestoneClass(analyticsState.xp >= 500);
+        }
+
+        function renderActivityFeed() {
+            const feed = document.getElementById('activityFeed');
+            if (!analyticsState.recent_actions.length) {
+                feed.innerHTML = '<li class="p-3 rounded-lg border border-gray-700 bg-gray-900/70">No activity yet. Complete your first mission.</li>';
+                return;
+            }
+
+            feed.innerHTML = analyticsState.recent_actions
+                .slice(0, 5)
+                .map((item) => `<li class="p-3 rounded-lg border border-gray-700 bg-gray-900/70">${item}</li>`)
+                .join('');
+        }
+
+        function renderAnalytics() {
+            document.getElementById('statXp').textContent = analyticsState.xp;
+            document.getElementById('statLevel').textContent = currentLevel();
+            document.getElementById('statStreak').textContent = analyticsState.streak;
+            document.getElementById('statUploads').textContent = analyticsState.uploads;
+            document.getElementById('statLinks').textContent = analyticsState.links + analyticsState.records;
+
+            const levelXp = xpIntoCurrentLevel();
+            const percent = Math.min((levelXp / XP_PER_LEVEL) * 100, 100);
+            document.getElementById('levelProgressBar').style.width = `${percent}%`;
+            document.getElementById('levelProgressLabel').textContent = `${levelXp} / ${XP_PER_LEVEL} XP`;
+
+            renderMilestones();
+            renderActivityFeed();
+        }
+
+        function metricLabel(metric) {
+            if (metric === 'uploads') return 'uploads';
+            if (metric === 'links') return 'links/text items';
+            if (metric === 'records') return 'audio recordings';
+            return 'XP';
+        }
+
+        function metricColor(metric) {
+            if (metric === 'uploads') return 'from-cyan-600 to-cyan-400 border-cyan-300/20';
+            if (metric === 'links') return 'from-emerald-600 to-emerald-400 border-emerald-300/20';
+            if (metric === 'records') return 'from-purple-600 to-purple-400 border-purple-300/20';
+            return 'from-indigo-600 to-blue-400 border-blue-300/20';
+        }
+
+        function getMetricValue(day, metric) {
+            if (!day) return 0;
+            return Number(day[metric] || 0);
+        }
+
+        function renderHistoryChart(history, metric = currentTrendMetric) {
+            const container = document.getElementById('historyBars');
+            const summary = document.getElementById('trendSummary');
+
+            if (!Array.isArray(history) || history.length === 0) {
+                container.innerHTML = `
+                    <div class="w-full h-full rounded-lg border border-gray-700 bg-gray-900/70 flex items-center justify-center text-gray-400 text-sm">
+                        No trend data available yet.
+                    </div>
+                `;
+                summary.textContent = `0 ${metricLabel(metric)} in last 14 days`;
+                return;
+            }
+
+            const maxValue = Math.max(...history.map((day) => getMetricValue(day, metric)), 1);
+            const totalValue = history.reduce((sum, day) => sum + getMetricValue(day, metric), 0);
+            summary.textContent = `${totalValue} ${metricLabel(metric)} in last 14 days`;
+
+            const colorClass = metricColor(metric);
+
+            container.innerHTML = history.map((day) => {
+                const value = getMetricValue(day, metric);
+                const height = value === 0 ? 8 : Math.max((value / maxValue) * 100, 8);
+                const label = (day.date || '').slice(5);
+                return `
+                    <div class="flex-1 min-w-0 h-full flex flex-col items-center justify-end" title="${day.date}: ${value} ${metricLabel(metric)}">
+                        <div class="w-full rounded-t bg-gradient-to-t ${colorClass} border" style="height: ${height}%"></div>
+                        <span class="text-[10px] text-gray-400 mt-1">${label}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderFilterButtons() {
+            const filterButtons = document.querySelectorAll('.trend-filter');
+            filterButtons.forEach((button) => {
+                const isActive = button.dataset.metric === currentTrendMetric;
+                if (isActive) {
+                    button.className = 'trend-filter px-3 py-1.5 rounded-lg text-xs border border-blue-400/40 bg-blue-500/20 text-blue-300';
+                } else {
+                    button.className = 'trend-filter px-3 py-1.5 rounded-lg text-xs border border-gray-600 bg-gray-800 text-gray-200';
+                }
+            });
+        }
+
+        function bindTrendFilterEvents() {
+            const filterButtons = document.querySelectorAll('.trend-filter');
+            filterButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    currentTrendMetric = button.dataset.metric || 'xp';
+                    renderFilterButtons();
+                    renderHistoryChart(currentHistoryData, currentTrendMetric);
+                });
+            });
+        }
+
+        async function hydrateAnalyticsFromApi() {
+            try {
+                const response = await fetch('/api/analytics');
+                if (!response.ok) return;
+
+                const data = await response.json();
+                if (!data.success) return;
+
+                Object.assign(analyticsState, data.analytics || {});
+                currentHistoryData = Array.isArray(data.history_14d) ? data.history_14d : [];
+                normalizeAnalytics();
+                renderAnalytics();
+                renderHistoryChart(currentHistoryData, currentTrendMetric);
+            } catch (error) {
+                currentHistoryData = [];
+                renderHistoryChart([], currentTrendMetric);
+            }
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        };
+
+        function resetRecordingStatusView() {
+            const status = document.getElementById('recordingStatus');
+            status.innerHTML = `
+                <div class="animate-pulse text-red-500 flex items-center justify-center gap-2">
+                    <span class="w-2.5 h-2.5 bg-red-500 rounded-full pulse-dot"></span>
+                    <span id="recordingStatusText">Recording in progress...</span>
+                </div>
+                <div class="mt-2 font-mono" id="recordingTime">00:00</div>
+            `;
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const fileInput = form.querySelector('input[type="file"]');
+            const progressDiv = form.querySelector('#uploadProgress');
+            const progressBar = progressDiv.querySelector('.bg-blue-600');
+            const submitButton = form.querySelector('button[type="submit"]');
+
+            if (!fileInput.files.length) {
+                alert('Please select a video file');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (!file.type.startsWith('video/')) {
+                alert('Please select a valid video file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                submitButton.disabled = true;
+                progressDiv.classList.remove('hidden');
+                progressBar.style.width = '50%';
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    progressBar.style.width = '100%';
+                    setTimeout(() => {
+                        window.location.href = `/transcript/${data.transcript_id}`;
+                    }, 500);
+                } else {
+                    alert(data.error);
+                    progressDiv.classList.add('hidden');
+                }
+            } catch (error) {
+                alert('An error occurred while uploading the video. Please try again.');
+                progressDiv.classList.add('hidden');
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+
+        document.getElementById('linkForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const url = form.querySelector('input[name="contentUrl"]').value.trim();
+            const text = form.querySelector('textarea[name="contentText"]').value.trim();
+
+            if (!url && !text) {
+                alert('Please provide either a URL or paste some text');
+                return;
+            }
+
+            const progressDiv = form.querySelector('#linkProgress');
+            const progressBar = progressDiv.querySelector('.bg-blue-600');
+            const submitButton = form.querySelector('button[type="submit"]');
+
+            try {
+                submitButton.disabled = true;
+                progressDiv.classList.remove('hidden');
+                progressBar.style.width = '50%';
+
+                const formData = new FormData();
+                if (url) formData.append('url', url);
+                if (text) formData.append('text', text);
+
+                const response = await fetch('/process_content', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    progressBar.style.width = '100%';
+                    setTimeout(() => {
+                        window.location.href = `/transcript/${data.transcript_id}`;
+                    }, 500);
+                } else {
+                    alert(data.error || 'Failed to process content');
+                    progressDiv.classList.add('hidden');
+                }
+            } catch (error) {
+                alert('An error occurred while processing the content. Please try again.');
+                progressDiv.classList.add('hidden');
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+
+        document.getElementById('audioUploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const fileInput = form.querySelector('input[type="file"]');
+            const submitButton = form.querySelector('button[type="submit"]');
+
+            if (!fileInput.files.length) {
+                alert('Please select an audio file');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', 'audio');
+
+            try {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Processing...';
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = `/transcript/${data.transcript_id}`;
+                } else {
+                    alert(data.error);
+                }
+            } catch (error) {
+                alert('An error occurred while uploading the audio');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Upload Audio';
+            }
+        });
+
+        let mediaRecorder;
+        let recordedChunks = [];
+        let recordingTimer;
+        let recordingStartTime;
+
+        function updateRecordingTime() {
+            const elapsed = Date.now() - recordingStartTime;
+            const seconds = Math.floor(elapsed / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            const timeLabel = document.getElementById('recordingTime');
+            if (timeLabel) {
+                timeLabel.textContent = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        document.getElementById('startRecord').addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) recordedChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(recordedChunks, { type: 'audio/webm;codecs=opus' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = document.getElementById('recordedAudio');
+                    audio.src = audioUrl;
+                    document.getElementById('audioPreview').classList.remove('hidden');
+                    clearInterval(recordingTimer);
+                };
+
+                recordedChunks = [];
+                recordingStartTime = Date.now();
+                mediaRecorder.start(1000);
+
+                resetRecordingStatusView();
+
+                document.getElementById('startRecord').classList.add('hidden');
+                document.getElementById('stopRecord').classList.remove('hidden');
+                document.getElementById('pauseRecord').classList.remove('hidden');
+                document.getElementById('pauseRecord').textContent = 'Pause';
+                document.getElementById('recordingStatus').classList.remove('hidden');
+                document.getElementById('audioPreview').classList.add('hidden');
+
+                recordingTimer = setInterval(updateRecordingTime, 1000);
+            } catch (error) {
+                alert('Error accessing microphone. Please make sure you have granted permission.');
+            }
+        });
+
+        document.getElementById('stopRecord').addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+
+            document.getElementById('startRecord').classList.remove('hidden');
+            document.getElementById('stopRecord').classList.add('hidden');
+            document.getElementById('pauseRecord').classList.add('hidden');
+            document.getElementById('recordingStatus').classList.add('hidden');
+        });
+
+        document.getElementById('pauseRecord').addEventListener('click', () => {
+            if (!mediaRecorder) return;
+
+            const statusText = document.getElementById('recordingStatusText');
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.pause();
+                document.getElementById('pauseRecord').textContent = 'Resume';
+                if (statusText) statusText.textContent = 'Recording paused';
+                clearInterval(recordingTimer);
+            } else if (mediaRecorder.state === 'paused') {
+                mediaRecorder.resume();
+                document.getElementById('pauseRecord').textContent = 'Pause';
+                if (statusText) statusText.textContent = 'Recording in progress...';
+                recordingTimer = setInterval(updateRecordingTime, 1000);
+            }
+        });
+
+        document.getElementById('saveRecording').addEventListener('click', async () => {
+            const audioBlob = new Blob(recordedChunks, { type: 'audio/webm;codecs=opus' });
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'recording.webm');
+            formData.append('type', 'audio');
+
+            const recordingStatus = document.getElementById('recordingStatus');
+            recordingStatus.classList.remove('hidden');
+
+            try {
+                recordingStatus.innerHTML = `
+                    <div class="text-center">
+                        <div class="animate-pulse text-blue-500 mb-2">Processing audio...</div>
+                        <div class="w-full bg-gray-600 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full w-1/2"></div>
+                        </div>
+                    </div>
+                `;
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    recordingStatus.innerHTML = `
+                        <div class="text-center text-green-500">
+                            <div class="mb-2">✓ Processing complete!</div>
+                            <div>Redirecting to transcript...</div>
+                        </div>
+                    `;
+                    setTimeout(() => {
+                        window.location.href = `/transcript/${data.transcript_id}`;
+                    }, 1000);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                recordingStatus.innerHTML = `
+                    <div class="text-center text-red-500">
+                        <div class="mb-2">✗ Error processing audio</div>
+                        <div class="text-sm">${error.message || 'Please try again'}</div>
+                    </div>
+                `;
+            }
+        });
+
+        document.getElementById('discardRecording').addEventListener('click', () => {
+            recordedChunks = [];
+            document.getElementById('audioPreview').classList.add('hidden');
+            document.getElementById('startRecord').classList.remove('hidden');
+            resetRecordingStatusView();
+        });
+
+        normalizeAnalytics();
+        renderAnalytics();
+        renderFilterButtons();
+        bindTrendFilterEvents();
+        hydrateAnalyticsFromApi();
+    </script>
+</body>
+</html>

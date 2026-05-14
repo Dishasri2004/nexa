@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexa - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <style>
+        .moving-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .form-container {
+            backdrop-filter: blur(8px);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+    <div id="particles-js" class="moving-bg"></div>
+
+    <div class="form-container w-96 p-8 rounded-2xl shadow-xl" data-motion>
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-2">Nexa</h1>
+            <p class="text-gray-400">Your AI Learning Assistant</p>
+        </div>
+
+        <div class="tabs flex justify-center mb-6">
+            <button class="px-4 py-2 text-lg font-medium transition-colors duration-200" 
+                    onclick="showTab('login')" id="loginTab">Login</button>
+            <button class="px-4 py-2 text-lg font-medium transition-colors duration-200" 
+                    onclick="showTab('signup')" id="signupTab">Sign Up</button>
+        </div>
+
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <input type="email" name="email" placeholder="Email" required
+                       class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <input type="password" name="password" placeholder="Password" required
+                       class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500">
+            </div>
+            <button type="submit" 
+                    class="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
+                Login
+            </button>
+        </form>
+
+        <form id="signupForm" class="space-y-4 hidden">
+            <div>
+                <input type="email" name="email" placeholder="Email" required
+                       class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <input type="password" name="password" placeholder="Password" required
+                       class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <input type="password" name="confirm_password" placeholder="Confirm Password" required
+                       class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:border-blue-500">
+            </div>
+            <button type="submit" 
+                    class="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
+                Sign Up
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // Initialize particles.js
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: '#ffffff' },
+                shape: { type: 'circle' },
+                opacity: { value: 0.5, random: false },
+                size: { value: 3, random: true },
+                line_linked: { enable: true, distance: 150, color: '#ffffff', opacity: 0.4, width: 1 },
+                move: { enable: true, speed: 6, direction: 'none', random: false, straight: false, out_mode: 'out', bounce: false }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: { enable: true, mode: 'repulse' },
+                    onclick: { enable: true, mode: 'push' },
+                    resize: true
+                }
+            }
+        });
+
+        // Form animations and functionality
+        function showTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const loginTab = document.getElementById('loginTab');
+            const signupTab = document.getElementById('signupTab');
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+                loginTab.classList.add('text-blue-500');
+                signupTab.classList.remove('text-blue-500');
+            } else {
+                loginForm.classList.add('hidden');
+                signupForm.classList.remove('hidden');
+                loginTab.classList.remove('text-blue-500');
+                signupTab.classList.add('text-blue-500');
+            }
+        }
+
+        // Show login tab by default
+        showTab('login');
+
+        // Handle form submissions
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = '/dashboard';
+                } else {
+                    alert(data.error);
+                }
+            } catch (error) {
+                alert('An error occurred. Please try again.');
+            }
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            if (formData.get('password') !== formData.get('confirm_password')) {
+                alert('Passwords do not match');
+                return;
+            }
+            try {
+                const response = await fetch('/signup', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = '/dashboard';
+                } else {
+                    alert(data.error);
+                }
+            } catch (error) {
+                alert('An error occurred. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>

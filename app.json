@@ -1,0 +1,42 @@
+{
+  "name": "nexa",
+  "description": "Flask-based AI learning assistant with transcripts, chatbot, quiz, flashcards, diagrams, and snapshot Q&A.",
+  "repository": "https://github.com/your-username/nexa",
+  "logo": "",
+  "keywords": [
+    "flask",
+    "gemini",
+    "mongodb",
+    "education",
+    "rag",
+    "faiss"
+  ],
+  "buildpacks": [
+    {
+      "url": "https://github.com/heroku/heroku-buildpack-apt"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "env": {
+    "FLASK_SECURE_COOKIES": {
+      "value": "true"
+    },
+    "MONGODB_DB_NAME": {
+      "value": "nexa_db"
+    },
+    "NEXA_DATA_DIR": {
+      "value": "/tmp/nexa"
+    },
+    "SESSION_LIFETIME_DAYS": {
+      "value": "7"
+    },
+    "MAX_CONTENT_LENGTH_MB": {
+      "value": "80"
+    },
+    "LOG_LEVEL": {
+      "value": "INFO"
+    }
+  }
+}
